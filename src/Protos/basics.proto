@@ -1,0 +1,29 @@
+
+service Greeter {
+    rpc SayHello(HelloRequest) returns (HelloReply) {}
+}
+
+service StockBuyer{
+    rpc BuyStock(BuyRequest) returns (TransactionSummary) {}
+}
+
+message BuyRequest{
+    required string stock = 1;
+    required int32 quantity = 2;
+    required int32 id = 3;
+}
+
+message TransactionSummary{
+    required int32 cost = 1;
+}
+
+message HelloRequest{
+    required int32 date = 1;
+    optional string hello = 2;
+}
+
+message HelloReply{
+    required int64 randomNumber = 1;
+    optional string serverMessage = 2;
+}
+
