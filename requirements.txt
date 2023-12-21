@@ -1,0 +1,5 @@
+# Necessary for running the project
+gnu-screen
+grpcio
+# concurrent
+# logging
