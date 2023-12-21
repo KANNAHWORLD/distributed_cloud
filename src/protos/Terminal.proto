@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+service Terminal {
+    rpc ping(MyRequest) returns (PingReply) {}
+}
+
+message MyRequest {
+    // blank for now
+}
+
+message PingReply {
+    required int32 id = 1;
+    required string message = 2;
+    required bool alive = 3;
+}
+
