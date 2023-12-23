@@ -1,16 +1,23 @@
 syntax = "proto2";
 
 service Terminal {
-    rpc ping(MyRequest) returns (PingReply) {}
+    rpc ping(MyRequest) returns (TerminalOutput) {}
+    rpc cd(CD) returns (TerminalOutput) {}
+    rpc ls(MyRequest) returns (TerminalOutput) {}
+    rpc pwd(MyRequest) returns (TerminalOutput) {}
+    rpc mkdir(CD) returns (TerminalOutput) {}
 }
 
 message MyRequest {
     // blank for now
 }
 
-message PingReply {
-    required int32 id = 1;
-    required string message = 2;
-    required bool alive = 3;
+message CD {
+    required string path = 1;
 }
 
+message TerminalOutput {
+    optional string output = 1;
+    optional string pwd = 2;
+    optional bool alive = 3;
+}
