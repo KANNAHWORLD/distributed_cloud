@@ -1,6 +1,7 @@
 import grpc
 import os
 import logging
+import asyncio
 
 import Terminal_pb2_grpc
 import Terminal_pb2
@@ -12,6 +13,57 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
 
     This class provides methods to handle incoming gRPC requests related to the terminal functionality.
     """
+    '''
+    # Distributed file system exists in such a way that 
+    # current directory file which lists all files contained in the directory
+    # also contains a list of all folders which can be found
+    # File contains ip+port of the server which contains the file,
+    # Each server contains its own shared directory which would can be searched by central server
+    
+    # directory File format such that 
+    # 1. Directory path is filename
+    # 2. each line in file contains file+folder data
+    # 3. for file, file_name+file_or_directory+node_registry+permissions
+    
+    # D is for directory, F is file in second 
+
+    # ASCII Delimiter Group separator
+    '''
+    
+    
+    file_content_delimiter = chr(29)
+    file_name_delimiter = chr(30)
+    # Actual directory on the server machine
+    absolute_path = os.getcwd()+"/sharedDirec/"
+
+    # relative directory for the user connected to the server
+    # This is the root directory of the server filesystem
+    # Filesystem is implemented by a files with a filesystem name
+    root_directory = '.~'
+
+    # TODO: File allowing changing directory into multiple directories at once
+
+
+
+    def __init__(self) -> None:
+        """
+        Initializes an instance of the Terminal class.
+        
+        Instance Variables:
+        - user_directory: The default root directory for the server.
+        - user_loaded_directory: A list of files in the current directory.
+        - private_loaded_directory: A list of raw data such as ip, port, and permissions of the server which contains the file.
+        """
+        
+        # Default root directory for the server
+        self.user_directory = self.root_directory
+
+        # list of files in the current directory
+        # User contains just file and that data
+        self.user_loaded_directory = []
+        # Contains all raw data such as ip+port+permissions of the server which contains the file
+        self.private_loaded_directory = []
+        self.load_directory(self.absolute_path+self.user_directory)
 
     def ping(self, request, context):
         """
@@ -27,47 +79,13 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         logging.log(logging.INFO, "Recieved ping request")
         reply = Terminal_pb2.TerminalOutput(output="Pong", alive=True)
         return reply
-    
-
-    # Distributed file system exists in such a way that 
-    # current directory file which lists all files contained in the directory
-    # also contains a list of all folders which can be found
-    # File contains ip+port of the server which contains the file,
-    # Each server contains its own shared directory which would can be searched by central server
-    
-    # directory File format such that 
-    # 1. Directory path is filename
-    # 2. each line in file contains file+folder data
-    # 3. for file, file_name+file_or_directory+node_registry+permissions
-    
-    # D is for directory, F is file in second 
-
-    # ASCII Delimiter Group separator
-    file_delimiter = chr(29)
-    file_name_delimiter = chr(30)
-    # Actual directory on the server machine
-    absolute_path = os.getcwd()+"/sharedDirec/."
-
-    # relative directory for the user connected to the server
-    
-    # This is the root directory of the server
-    root_directory = '~'
-
-    # Default root directory for the server
-    user_directory = root_directory
-
-    # list of files in the current directory
-    # User contains just file and that data
-    user_loaded_directory = []
-    # Contains all raw data such as ip+port+permissions of the server which contains the file
-    private_loaded_directory = []
 
     def load_directory(self, directory):
         """
         Loads the directory from the server machine into the server memory.
         """
         file = open(directory, 'r')
-        self.private_loaded_directory = [line.split(self.file_delimiter) for line in file]
+        self.private_loaded_directory = [line.split(self.file_content_delimiter) for line in file]
         file.close()
 
         # Capturing only the filenames from the private_loaded_directory
@@ -77,7 +95,7 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
 
     # TODO need to add support of permissions for files
     # Need to keep track of which machines has which files
-    def cd(self, request, context):
+    def cd(self, request, context) -> Terminal_pb2.TerminalOutput:
         """
         Change the current directory.
 
@@ -129,7 +147,7 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
             # User chaning into a non existent directory # Done
             # User changing into a directory that is a file # Done
         
-    def ls(self, request, context):
+    def ls(self, request, context) -> Terminal_pb2.TerminalOutput:
         # TODO need to add support for permissions
         """
         List the contents of the current directory.
@@ -149,7 +167,7 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
             (output="\n".join(self.user_loaded_directory), pwd=self.user_directory, alive=True)
         return reply
 
-    def pwd(self, request, context):
+    def pwd(self, request, context) -> Terminal_pb2.TerminalOutput:
         """
         Print the current directory.
 
@@ -164,7 +182,35 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         """
         return Terminal_pb2.TerminalOutput(pwd=self.user_directory)
     
-    def mkdir(self, request, context):
+    # internal function
+    def createPath(self, name, DorF="D", node_registry='0', permissions="0") -> None:
+        """
+        Creates a path name by concatenating the provided parameters with the file content delimiter.
+        TODO:
+            Check if files names are illegal such as containing the file content delimiter or newline, (back) slash
+
+        Args:
+            name (str): The name of the file or directory.
+            DorF (str): Indicates whether the path represents a file or directory.
+            node_registry (str): The node registry information.
+            permissions (str): The permissions for the path.
+
+        Returns:
+            str: The concatenated path name.
+        """
+        
+        self.private_loaded_directory.append([name, DorF, node_registry, permissions])
+        self.private_loaded_directory.sort(key=lambda x: x[0])
+
+        # Need to acquire lock
+        # Need to notify other threads and nodes that directory has been updated
+
+        file = open(self.absolute_path+self.user_directory, 'w')
+
+        for entry in self.private_loaded_directory:
+            print(self.file_content_delimiter.join(entry), file=file)
+
+    def mkdir(self, request, context) -> Terminal_pb2.TerminalOutput:
         """
         Create a new directory.
 
@@ -178,5 +224,19 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         Raises:
         """
         # TODO need to add support for permissions
-        path_creation = request.path
         # Check if the directory already exists
+
+        # If directory already exists, do nothing, send message appropriately
+
+        # If directory does not exist, create the directory # For permissions make sure to leave flxibility
+        # For later
+
+        # TODO: Permissions, look into how to implement permissions, look into version control, using locks
+        self.createPath(request.path)
+        
+        # TODO: Need to return appropriate message if createPath worked or not 
+        # Return values
+        return Terminal_pb2.TerminalOutput(pwd=self.user_directory)
+
+
+

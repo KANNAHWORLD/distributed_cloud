@@ -39,6 +39,7 @@ def serve():
 
     # Start the server
     server.start()
+    print("Server started, listening on " + PORT)
     logging.log(logging.INFO, "Server started, listening on " + PORT)
 
     # Keep the server alive until terminations
