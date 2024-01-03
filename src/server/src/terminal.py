@@ -32,8 +32,6 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
     # ASCII Delimiter Group separator
     '''
     
-
-
     def __init__(self) -> None:
         """
         Initializes an instance of the Terminal class.
@@ -43,8 +41,9 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         - user_loaded_directory: A list of files in the current directory.
         - private_loaded_directory: A list of raw data such as ip, port, and permissions of the server which contains the file.
         """
-        
+
         self.fs = Filesys()
+        pass
 
     def ping(self, request, context):
         """
@@ -72,7 +71,8 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
             # User exiting directory beyond root directory # Done
             # User chaning into a non existent directory # Done
             # User changing into a directory that is a file # Done
-        
+
+ 
     def ls(self, request, context) -> Terminal_pb2.TerminalOutput:
         # TODO need to add support for permissions
         """
@@ -133,7 +133,9 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         
         # TODO: Need to return appropriate message if createPath worked or not 
         # Return values
+        print(dict(context.invocation_metadata()))
+        print(request)
+        metadata = dict(context.invocation_metadata())
+        print(metadata)
         return Terminal_pb2.TerminalOutput(pwd=self.fs.createFile(request.path))
-
-
 

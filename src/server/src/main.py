@@ -1,4 +1,3 @@
-
 import logging
 from concurrent import futures
 
@@ -13,7 +12,6 @@ import session
 # Constants 
 PORT = "50051"
 MAX_WORKERS = 10
-
 
 def serve():
     """
@@ -31,13 +29,12 @@ def serve():
     """
     # Instantiate the server with gRPC methods
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS), interceptors=(session.SessionInterceptor(),))
-
     # To the server which we created, we need to add the class Greeter to the server
     Terminal_pb2_grpc.add_TerminalServicer_to_server(terminal.Terminal(), server)
     
     # This is the port that we are going to use
     server.add_insecure_port("[::]:" + PORT)
-
+    
     # Start the server
     server.start()
     print("Server started, listening on " + PORT)
@@ -45,7 +42,6 @@ def serve():
 
     # Keep the server alive until terminations
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     logging.basicConfig()

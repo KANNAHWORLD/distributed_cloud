@@ -36,7 +36,8 @@ def run():
     with grpc.insecure_channel("localhost:50051") as channel:
         
         stub = Terminal_pb2_grpc.TerminalStub(channel)
-        stub.mkdir(Terminal_pb2.CD(path="direc2"))
+        metadata = [("session_id", "12")]
+        stub.mkdir(Terminal_pb2.CD(path="direc2"), metadata=metadata)
         stub.cd(Terminal_pb2.CD(path="direc2"))
         stub.mkdir(Terminal_pb2.CD(path="direc3"))
         # while True:

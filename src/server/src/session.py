@@ -43,35 +43,44 @@ class SessionInterceptor(grpc.ServerInterceptor):
     SessionTime = dLL.DoubleLinkedList()
     sessionLock = threading.Lock()
     
-    def intercept_service(self, continuation, handler_call_details):
+    def intercept_service(self, func, handler_call_details):
         
-        # # Check if the metadata contains a session key
-        # # If it does, then check if the session is still alive
-        # sessionID = handler_call_details.invocation_metadata['session']
-        # if sessionID in self.IDSessionsNodes:
+        # Check if the metadata contains a session key
+        # If it does, then check if the session is still alive
+        metadata = dict(handler_call_details.invocation_metadata)
+        # print(metadata)
+        sessionID = None
 
-        #     node = self.IDSessionsNodes[sessionID]
-        #     if not node.is_alive():
-        #         # If the session is alive, then update the time
-        #         self.IDSessionsNodes.pop(sessionID)
-        #         self.SessionTime.remove_node(node)
-        #         return 
-        #     # If the session is alive, then update the time
-        #     node.data.session_touch()
+        if sessionID in metadata:
+            sessionID = metadata["session_id"]
+        
+        if sessionID in self.IDSessionsNodes:
+
+            node = self.IDSessionsNodes[sessionID]
             
-        #     # If the session is not alive, then prompt the user to create a new session
-            
+            if not node.is_alive():
+                # If the session is not alive, then remove the session from the dictionary and the dLL
+                self.IDSessionsNodes.pop(sessionID)
+                self.SessionTime.remove_node(node)
+                node = None
+            else:
+                # If the session is alive, then extend the session time
+                node.data.session_touch()
+        else:
+            # If session ID is not in the dictionary, then node doesn't exist
+            node = None
 
-        # If no key prompt the user to create a new session
+        if node is None:
+            # Create a new session and add it to the metadata tab
+            newSession = Session()
+            node = self.SessionTime.create_add_node(newSession)
+            self.IDSessionsNodes[newSession.sessionKey] = node
 
-        # handler_call_details.invocation_metadata.append(('session', ))
 
-        # print(handler_call_details.invocation_metadata)
-        # print(handler_call_details)
-        response = continuation(handler_call_details)
-        print(continuation)
+        new_handler_call_details = handler_call_details._replace(invocation_metadata=(tuple(metadata.items())))
+        print(new_handler_call_details)
 
-        return response
-
+        return func(new_handler_call_details)
+        
 
 

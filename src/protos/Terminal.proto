@@ -20,4 +20,5 @@ message TerminalOutput {
     optional string output = 1;
     optional string pwd = 2;
     optional bool alive = 3;
+    required string sessionID = 4;
 }
