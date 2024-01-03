@@ -5,8 +5,9 @@ from concurrent import futures
 import grpc
 
 import Terminal_pb2_grpc
-# import services.rpc_build.Terminal_pb2 as Terminal_pb2
 import  terminal
+
+import session
 
 
 # Constants 
@@ -29,7 +30,7 @@ def serve():
         None
     """
     # Instantiate the server with gRPC methods
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS), interceptors=(session.SessionInterceptor(),))
 
     # To the server which we created, we need to add the class Greeter to the server
     Terminal_pb2_grpc.add_TerminalServicer_to_server(terminal.Terminal(), server)

@@ -36,14 +36,17 @@ def run():
     with grpc.insecure_channel("localhost:50051") as channel:
         
         stub = Terminal_pb2_grpc.TerminalStub(channel)
-        while True:
-            inp = input("Entere something: ")
-            if inp == "q":
-                break
-            response = stub.cd(Terminal_pb2.CD(path=inp))
-            print(response.pwd)
+        stub.mkdir(Terminal_pb2.CD(path="direc2"))
+        stub.cd(Terminal_pb2.CD(path="direc2"))
+        stub.mkdir(Terminal_pb2.CD(path="direc3"))
+        # while True:
+        #     inp = input("Entere something: ")
+        #     if inp == "q":
+        #         break
+        #     response = stub.cd(Terminal_pb2.CD(path=inp))
+        #     print(response.pwd)
         
-        print("Recieved response: " + response.message + " {response.alive}")
+        # print("Recieved response: " + response.message + " {response.alive}")
         
     # print("Greeter client received: " + response.message)
 

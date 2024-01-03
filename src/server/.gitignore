@@ -1,3 +1,4 @@
 **/rpc_build/
 **/__pycache__/
 **/*_pb2*.*
+**/sharedDirec/
