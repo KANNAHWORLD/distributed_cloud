@@ -28,14 +28,14 @@ class DoubleLinkedList:
         self.head = None
         self.tail = None
 
-    def add_front(self, data):
+    def add_front(self, new_node):
         """
         Adds a new node with the given data to the front of the linked list.
 
         Args:
             data: The data to be stored in the new node.
         """
-        new_node = Node(data)
+
         if self.head is None:
             self.head = new_node
             self.tail = new_node
@@ -44,14 +44,13 @@ class DoubleLinkedList:
             self.head.prev = new_node
             self.head = new_node
 
-    def add_end(self, data):
+    def add_end(self, new_node):
         """
         Adds a new node with the given data to the end of the linked list.
 
         Args:
             data: The data to be stored in the new node.
         """
-        new_node = Node(data)
         if self.head is None:
             self.head = new_node
             self.tail = new_node
@@ -67,6 +66,7 @@ class DoubleLinkedList:
         Args:
             node (Node): The node to be removed.
         """
+
         if node.prev is None:
             self.head = node.next
         else:
@@ -115,3 +115,13 @@ class DoubleLinkedList:
         nNode = Node(node)
         self.add_front(nNode)
         return nNode
+
+    def get_front(self):
+        """
+        Returns the data stored in the first node of the linked list.
+
+        Returns:
+            The data stored in the first node of the linked list.
+        """
+        return None if not self.head else self.head.data
+        

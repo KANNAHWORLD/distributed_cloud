@@ -28,7 +28,7 @@ def serve():
         None
     """
     # Instantiate the server with gRPC methods
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS), interceptors=(session.SessionInterceptor(),))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=MAX_WORKERS))
     # To the server which we created, we need to add the class Greeter to the server
     Terminal_pb2_grpc.add_TerminalServicer_to_server(terminal.Terminal(), server)
     

@@ -72,7 +72,6 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
             # User chaning into a non existent directory # Done
             # User changing into a directory that is a file # Done
 
- 
     def ls(self, request, context) -> Terminal_pb2.TerminalOutput:
         # TODO need to add support for permissions
         """
@@ -91,7 +90,6 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         # Future add permissions here
         return Terminal_pb2.TerminalOutput(output=self.fs.ls(), alive=True)
 
-
     def pwd(self, request, context) -> Terminal_pb2.TerminalOutput:
         """
         Print the current directory.
@@ -106,7 +104,6 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         Raises:
         """
         return Terminal_pb2.TerminalOutput(pwd=self.fs.pwd())
-
 
     def mkdir(self, request, context) -> Terminal_pb2.TerminalOutput:
         """
@@ -133,9 +130,8 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         
         # TODO: Need to return appropriate message if createPath worked or not 
         # Return values
-        print(dict(context.invocation_metadata()))
-        print(request)
+
         metadata = dict(context.invocation_metadata())
-        print(metadata)
+
         return Terminal_pb2.TerminalOutput(pwd=self.fs.createFile(request.path))
 
