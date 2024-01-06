@@ -62,32 +62,31 @@ class SessionInterceptor():
         Otherwise, a new session is created.
 
         Args:
-            metadata (dict): The metadata containing the session ID.
+            sessionID (str): The session ID to retrieve the state for.
 
         Returns:
             Session: The retrieved or newly created session.
         """
 
         # Remove all timed out sessions
-        self.remove_timed_out_sessions()
-
-        self.sessionLock.acquire()
+        self.helper_remove_timed_out_sessions()
 
         if sessionID in self.IDSessionsNodes:
 
             node = self.IDSessionsNodes[sessionID]
-
+            self.sessionLock.acquire()
             if not node.data.is_alive():
-                # If the session is not alive, then remove the session from the dictionary and the dLL
-                self.IDSessionsNodes.pop(sessionID)
-                self.SessionTime.remove_node(node)
+                # If session is not alive, then delete the session
+                self.helper_nolock_delete_session(sessionID)
                 node = None
             else:
                 # If the session is alive, then extend the session time
                 node.data.session_touch()
-
+                # Move node to the end of the dLL since it is terminating later
+                self.SessionTime.move_to_end(node)
                 # So you can return the session object
                 node = node.data
+            self.sessionLock.release()
         else:
             # If session ID is not in the dictionary, then node doesn't exist
             node = None
@@ -96,14 +95,13 @@ class SessionInterceptor():
             # If the session doesn't exist, then create a new session
             node = self.create_session()
 
-        self.sessionLock.release()
         return node
         
     def create_session(self) -> Session:
         """
         Creates a new session and adds it to the session dictionary and the session dLL
         """
-        self.remove_timed_out_sessions()
+        self.helper_remove_timed_out_sessions()
         
         self.sessionLock.acquire()
         newSession = Session()
@@ -117,39 +115,7 @@ class SessionInterceptor():
         Deletes a session from the session dictionary and the session dLL
         """
         self.sessionLock.acquire()
-        node = self.IDSessionsNodes[session_id]
-        self.SessionTime.remove_node(node)
-        self.IDSessionsNodes.pop(session_id)
-        self.sessionLock.release()
-        return
-    
-    def nolock_delete_session(self, session_id) -> None:
-        """
-        Deletes a session from the session dictionary and the session dLL
-        """
-        node = self.IDSessionsNodes[session_id]
-        self.SessionTime.remove_node(node)
-        self.IDSessionsNodes.pop(session_id)
-        return
-
-    def remove_timed_out_sessions(self) -> None:
-        """
-        Removes all timed out sessions from the session dictionary and the session dLL
-        """
-        self.sessionLock.acquire()
-        
-        # Remove all timed out sessions
-        session = self.SessionTime.get_front()
-        while session:
-            # DLL is sorted earliest terminating in the front
-            if not session.is_alive():
-                self.nolock_delete_session(session.sessionKey)
-                # self.IDSessionsNodes.pop(data.sessionKey)
-                # self.SessionTime.remove_node(front)
-            else:
-                break
-            session = self.SessionTime.get_front()
-        
+        self.helper_nolock_delete_session(session_id)
         self.sessionLock.release()
         return
 
@@ -158,3 +124,31 @@ class SessionInterceptor():
         Returns the number of sessions in the session dictionary
         """
         return len(self.IDSessionsNodes)
+
+    # Helper functions, do not call these functions outside of the class
+    def helper_nolock_delete_session(self, session_id) -> None:
+        """
+        Deletes a session from the session dictionary and the session dLL
+        """
+        node = self.IDSessionsNodes[session_id]
+        self.SessionTime.remove_node(node)
+        self.IDSessionsNodes.pop(session_id)
+        return
+
+    def helper_remove_timed_out_sessions(self) -> None:
+        """
+        Removes all timed out sessions from the session dictionary and the session dLL
+        """
+        self.sessionLock.acquire()
+        # Remove all timed out sessions
+        session = self.SessionTime.get_front()
+        while session:
+            # DLL is sorted earliest terminating in the front
+            if not session.is_alive():
+                self.helper_nolock_delete_session(session.sessionKey)
+            else:
+                break
+            session = self.SessionTime.get_front()
+        self.sessionLock.release()
+        return
+

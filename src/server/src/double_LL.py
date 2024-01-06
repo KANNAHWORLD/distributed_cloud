@@ -113,7 +113,7 @@ class DoubleLinkedList:
             Node class: The newly created node.
         """
         nNode = Node(node)
-        self.add_front(nNode)
+        self.add_end(nNode)
         return nNode
 
     def get_front(self):
