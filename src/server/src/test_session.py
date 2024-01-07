@@ -110,6 +110,35 @@ class TestSesssion(unittest.TestCase):
         newSession = self.sesion_verifier.get_session(newSession.sessionKey)
         self.assertTrue(self.sesion_verifier.SessionTime.tail.data == newSession)
 
+    def test_multiple_delete_on_create(self):
+        '''
+        Tests if all sessions are removed when multiple sessions are timed out
+        '''
+
+        # Create a new session
+        newSession = self.sesion_verifier.create_session()
+
+        # Create another new session
+        anotherNewSession = self.sesion_verifier.create_session()
+
+        # Create another new session
+        anotherNewSession2 = self.sesion_verifier.create_session()
+
+        # Change timeOut times for all existing sessions
+        newSession.sessionTimeOut = time.time()
+        anotherNewSession.sessionTimeOut = time.time()
+        anotherNewSession2.sessionTimeOut = time.time()
+
+        # Create a new session which should remove timed out sessions
+        anotherNewSession3 = self.sesion_verifier.create_session()
+
+        # Check the data structures, no other sessions in the dictionary
+        # only one session in the linked list, which would be the most recent one
+        self.assertTrue(self.sesion_verifier.number_of_sessions() == 1)
+        self.assertTrue(self.sesion_verifier.SessionTime.head.data == anotherNewSession3)
+        self.assertTrue(self.sesion_verifier.SessionTime.tail.data == anotherNewSession3)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+    

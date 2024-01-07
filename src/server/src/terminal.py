@@ -131,7 +131,5 @@ class Terminal(Terminal_pb2_grpc.TerminalServicer):
         # TODO: Need to return appropriate message if createPath worked or not 
         # Return values
 
-        metadata = dict(context.invocation_metadata())
-
         return Terminal_pb2.TerminalOutput(pwd=self.fs.createFile(request.path))
 

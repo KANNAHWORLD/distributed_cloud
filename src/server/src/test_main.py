@@ -40,6 +40,8 @@ def run():
         stub.mkdir(Terminal_pb2.CD(path="direc2"), metadata=metadata)
         stub.cd(Terminal_pb2.CD(path="direc2"))
         stub.mkdir(Terminal_pb2.CD(path="direc3"))
+        
+        
         # while True:
         #     inp = input("Entere something: ")
         #     if inp == "q":
