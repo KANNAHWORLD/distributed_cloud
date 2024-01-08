@@ -372,18 +372,11 @@ class Filesys():
 
     # internal function
     # TODO: Need to create new files for each new directory,
-    # TODO need to add support for permissions
-    # Check if the directory already exists
-
-    # If directory already exists, do nothing, send message appropriately
-
-    # If directory does not exist, create the directory # For permissions make sure to leave flxibility
-    # For later
+    # TODO: need to add support for permissions
 
     # TODO: Permissions, look into how to implement permissions, look into version control, using locks
-    
-    # TODO: Need to return appropriate message if createPath worked or not 
     # TODO: Need to change th functionality depending on file or directory
+    # TODO: check if an actual local file needs to be created
     # Return values 
     def createFile(self, name, DorF="D", node_registry='0', permissions="0") -> None:
         """
@@ -394,11 +387,12 @@ class Filesys():
         Args:
             name (str): The name of the file or directory.
             DorF (str): Indicates whether the path represents a file or directory.
-            node_registry (str): The node registry information.
+            TODO: Check for zero
+            node_registry (str): The node registry information. A value of '0' indicates that the folder/file will be created locally on the central server.
             permissions (str): The permissions for the path.
 
         Returns:
-            str: The concatenated path name.
+            None
         """
         if name in self.user_loaded_directory:
             return self.pwd()
@@ -418,6 +412,8 @@ class Filesys():
         if DorF == "D":
             open(self.folder_path(file_number), 'w').close()
         else:
+
+            # TODO: check if the actula file actually needs to be created. 
             try:
                 os.makedirs(self.local_folder_path(self.pwd()))
             except FileExistsError:
