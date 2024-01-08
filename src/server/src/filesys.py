@@ -23,8 +23,8 @@ class Filesys():
     root_directory = '.~'
 
     # File numbers, each file is stored as a file number in the server
-    
-
+    # TODO: figure out a way in case there is number overflow
+    nextFileNumber = 2   
 
 
     def __init__(self) -> None:
@@ -32,33 +32,51 @@ class Filesys():
         Initializes an instance of the Filesys class.
         
         Instance Variables:
-        - user_directory: The default root directory for the server.
+        - number_directory_stack: A stack of directory numbers representing the user's traversal history.
+        - name_user_directory: A list representing the current directory path.
         - user_loaded_directory: A list of files in the current directory.
-        - private_loaded_directory: A list of raw data such as ip, port, and permissions of the server which contains the file.
+        - private_loaded_directory: A list of raw data such as IP, port, and permissions of the server which contains the file.
         """
-        
-        # TODO: need to check if root directory file exists, if not create it
+
+        # New directory by numbers
+        self.number_directory_stack = ['1']
 
         # Default root directory for the server
-        self.user_directory = self.root_directory
+        self.name_user_directory = ["~"]
+
+        # Creates the initial sharedDirec folder
+        if not os.path.exists(self.absolute_path):
+            os.makedirs(self.absolute_path)
+            
+        # This creates the initial root directory
+        if not os.path.exists(self.folder_path(self.number_directory_stack[-1])):
+            open(self.folder_path(self.number_directory_stack[-1]), 'w').close()
 
         # list of files in the current directory
         # User contains just file and that data
         self.user_loaded_directory = []
-        # Contains all raw data such as ip+port+permissions of the server which contains the file
-        self.private_loaded_directory = []
-        self.load_directory(self.absolute_path+self.user_directory)
 
-    def load_directory(self, directory):
+        # Contains all raw data such as IP, port, and permissions of the server which contains the file
+        self.private_loaded_directory = []
+        self.load_directory(self.number_directory_stack[-1])
+
+    def load_directory(self, directory) -> None:
         """
         Loads the directory from the server machine into the server memory.
+        Loads it into self.private_loaded_directory and self.user_loaded_directory.
+
+        Args:
+            directory (str): The name of the directory to be loaded.
+
+        Returns:
+            None
         """
-        file = open(directory, 'r')
+        file = open(self.folder_path(directory), 'r')
         self.private_loaded_directory = [line.split(self.file_content_delimiter) for line in file]
         file.close()
 
         # Capturing only the filenames from the private_loaded_directory
-        self.user_loaded_directory = [entry[0] for entry in self.private_loaded_directory]
+        self.user_loaded_directory = [self.file_name(entry) for entry in self.private_loaded_directory]
         return
 
     # TODO need to add support of permissions for files
@@ -85,15 +103,74 @@ class Filesys():
             '/'
             >>> fs.cd('file1')
             '/'
-
         """
         
         self.fileSystemLock.acquire()
         self.helper_cd(path)
         self.fileSystemLock.release()
     
-        return self.user_directory.replace(self.file_name_delimiter, '/')
-        
+        return self.pwd()
+
+    def folder_path(self, path: str) -> str:
+        """
+        Returns the absolute path of the specified path.
+
+        Args:
+            path (str): The path to get the absolute path of.
+
+        Returns:
+            str: The absolute path of the specified path.
+
+        Raises:
+            None
+        """
+        return self.absolute_path + '.' + path
+
+    def is_directory(self, entry: list) -> bool:
+        """
+        Checks if the path is a directory.
+
+        Args:
+            path (str): The path to check.
+
+        Returns:
+            bool: True if the path is a directory, False otherwise.
+
+        Raises:
+            None
+        """
+        return entry[2] == 'D'
+
+    def file_name(self, entry: list) -> str:
+        """
+        Returns the file name from the path.
+
+        Args:
+            path (str): The path to check.
+
+        Returns:
+            str: The file name.
+
+        Raises:
+            None
+        """
+        return entry[1]
+
+    def file_number(self, entry: list) -> str:
+        """
+        Returns the file number from the path.
+
+        Args:
+            path (str): The path to check.
+
+        Returns:
+            str: The file number.
+
+        Raises:
+            None
+        """
+        return entry[0]
+
     def helper_cd(self, path: str) -> None:
         """
         Change the current directory to the specified path.
@@ -115,39 +192,40 @@ class Filesys():
             '/'
             >>> fs.cd('file1')
             '/'
-
         """
-        req_direc = path
-
         # Maybe check if the requested directory contains the file name delimiter
 
-        if req_direc == '..':
+        if path == '..':
             # User is trying to exit the current directory
             # Check if the user is in the root directory
-            if self.user_directory == self.root_directory:
+            if self.number_directory_stack[-1] == '1':
                 # User is in the root directory
-                # Send error message to user
                 return
             else:
                 # User is not in the root directory
                 # Remove the last directory from the user directory
-                self.user_directory = self.user_directory[:self.user_directory.rindex(self.file_name_delimiter)]
+                self.number_directory_stack.pop()
+                self.name_user_directory.pop()
 
-        elif req_direc in self.user_loaded_directory:
-            index = self.user_loaded_directory.index(req_direc)
-            if self.private_loaded_directory[index][1] == 'D':
+        elif path in self.user_loaded_directory:
+            index = self.user_loaded_directory.index(path)
+            if self.is_directory(self.private_loaded_directory[index]):
                 # User is trying to change into a directory
                 # Change the user directory
-                self.user_directory += self.file_name_delimiter + req_direc
+                self.name_user_directory.append(self.file_name(self.private_loaded_directory[index]))
+                
+                #appending the file number to the stack
+                self.number_directory_stack.append(self.file_number(self.private_loaded_directory[index]))
             else:
                 # In case you are trying to change into a file, just do nothing
                 return 
         else:
+            # User is trying to change into a directory that does not exist
             return
 
         # Loading in the new directory if the directory needs to be changed
-        self.load_directory(self.absolute_path+self.user_directory)
-        
+        # TODO: Make sure you are calling this correctlys
+        self.load_directory(self.number_directory_stack[-1])
         return
 
     def ls(self) -> str:
@@ -180,7 +258,7 @@ class Filesys():
 
         Raises:
         """
-        return self.user_directory.replace(self.file_name_delimiter, '/')[1:]
+        return '/'.join(self.name_user_directory)
 
     # TODO need to add support for permissions
     def rm(self, path) -> str:
@@ -218,11 +296,11 @@ class Filesys():
             for subDir in self.private_loaded_directory:
                 if subDir[1] == "D":
                     self.helper_cd(subDir[0])
-                    helper_recursive_remove(self.user_directory)
+                    helper_recursive_remove(self.name_user_directory)
                     self.helper_cd('..')
 
                     # Removing the metadata file
-                    os.remove(self.absolute_path+self.user_directory+self.file_name_delimiter+subDir[0])
+                    os.remove(self.absolute_path+self.name_user_directory+self.file_name_delimiter+subDir[0])
                 else:
                     abs_file = self.absolute_path + self.pwd()+'/'+subDir[0]
                     
@@ -234,7 +312,7 @@ class Filesys():
         self.fileSystemLock.acquire()
         
         self.helper_cd(path)
-        helper_recursive_remove(self.user_directory)
+        helper_recursive_remove(self.name_user_directory)
         self.private_loaded_directory.remove(path)
         self.updatePathMetadata()
 
@@ -244,7 +322,7 @@ class Filesys():
         """
         Opens a file and outputs the private loaded directory to the file.
 
-        This function opens a file specified by the `self.absolute_path` and `self.user_directory` attributes,
+        This function opens a file specified by the `self.absolute_path` and `self.name_user_directory` attributes,
         and writes the contents of the `self.private_loaded_directory` list to the file. Each entry in the list
         is joined using the `self.file_content_delimiter` delimiter.
 
@@ -256,13 +334,13 @@ class Filesys():
         Returns:
             None
         """
-        file = open(self.absolute_path+self.user_directory, 'w')
+        file = open(self.folder_path(self.name_user_directory[-1]), 'w')
 
         for entry in self.private_loaded_directory:
             print(self.file_content_delimiter.join(entry), file=file)
 
         file.close()
-        pass
+        return
 
     # internal function
     # TODO: Need to create new files for each new directory,
@@ -309,10 +387,10 @@ class Filesys():
         # Updating the metadata file by writing private_loaded_directory to the file
         self.update_path_metadata()
         
-        file = open(self.absolute_path+self.user_directory+self.file_name_delimiter+name, 'w')
+        file = open(self.absolute_path+self.name_user_directory+self.file_name_delimiter+name, 'w')
         file.close()
 
-        self.load_directory(self.absolute_path+self.user_directory)
+        self.load_directory(self.absolute_path+self.name_user_directory)
 
         self.fileSystemUpdate.release()
 
