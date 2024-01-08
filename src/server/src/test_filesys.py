@@ -17,7 +17,7 @@ class TestFilesys(unittest.TestCase):
         #########################################
 
         # print(tearDownPath)
-        # shutil.rmtree(tearDownPath)
+        shutil.rmtree(tearDownPath)
 
     def test_constructor(self):
         self.assertTrue(os.path.exists(self.fs.absolute_path))
@@ -38,6 +38,7 @@ class TestFilesys(unittest.TestCase):
         self.fs.createFile("TestFile1.txt", "F", "0", "1")
         self.fs.cd("TestFile1")
         self.assertTrue(self.fs.pwd() == "~/TestDirec1/TestDirec2")
+        self.assertTrue(os.path.exists(self.fs.absolute_path + "/TestDirec1/TestDirec2/TestFile1.txt"))
 
 
 if __name__ == '__main__':

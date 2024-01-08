@@ -418,9 +418,14 @@ class Filesys():
         if DorF == "D":
             open(self.folder_path(file_number), 'w').close()
         else:
-            os.makedirs(self.local_folder_path(self.pwd()))
+            try:
+                os.makedirs(self.local_folder_path(self.pwd()))
+            except FileExistsError:
+                pass
+            except:
+                pass
+            
             open(self.file_path(name), 'w').close()
-
 
         self.fileSystemUpdate.release()
 
