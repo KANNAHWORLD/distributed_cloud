@@ -25,8 +25,21 @@ class TestFilesys(unittest.TestCase):
 
     def test_pwd(self):
         self.assertTrue(self.fs.pwd() == "~")
+    
+    def test_mkdir(self):
+        self.assertTrue(self.fs.pwd() == "~")
+        self.fs.createFile("TestDirec1", "D", "0", "1")
+        self.assertTrue(self.fs.ls() == "TestDirec1")
+        newDirec = self.fs.cd("TestDirec1")
+        self.assertTrue(newDirec == "~/TestDirec1")
+        self.fs.createFile("TestDirec2", "D", "0", "1")
+        self.fs.cd("TestDirec2")
+        self.assertTrue(self.fs.pwd() == "~/TestDirec1/TestDirec2")
+        self.fs.createFile("TestFile1.txt", "F", "0", "1")
+        self.fs.cd("TestFile1")
+        self.assertTrue(self.fs.pwd() == "~/TestDirec1/TestDirec2")
 
-        
+
 if __name__ == '__main__':
     # Changing static variable to modify the root directory
     # for unittestPurposes

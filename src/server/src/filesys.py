@@ -17,11 +17,6 @@ class Filesys():
     # the same directory as the server src
     absolute_path = os.getcwd()+"/sharedDirec/"
 
-    # relative directory for the user connected to the server
-    # This is the root directory of the server filesystem
-    # Filesystem is implemented by a files with a filesystem name
-    root_directory = '.~'
-
     # File numbers, each file is stored as a file number in the server
     # TODO: figure out a way in case there is number overflow
     nextFileNumber = 2   
@@ -126,6 +121,23 @@ class Filesys():
         """
         return self.absolute_path + '.' + path
 
+    def file_path(self, path: str) -> str:
+        """
+        Returns the absolute path of the specified path.
+
+        Args:
+            path (str): The path to get the absolute path of.
+
+        Returns:
+            str: The absolute path of the specified path.
+
+        Raises:
+            None
+        """
+
+        # creates the absolute path of a local file
+        return self.absolute_path + self.pwd()[2:] + '/' + path
+
     def is_directory(self, entry: list) -> bool:
         """
         Checks if the path is a directory.
@@ -170,6 +182,21 @@ class Filesys():
             None
         """
         return entry[0]
+
+    def local_folder_path(self, path: str) -> str:
+        """
+        Returns the absolute path for creating a local folder path.
+
+        Args:
+            path (str): The path to get the absolute path of.
+
+        Returns:
+            str: The absolute path of the specified path.
+
+        Raises:
+            None
+        """
+        return self.absolute_path + path[2:]
 
     def helper_cd(self, path: str) -> None:
         """
@@ -261,7 +288,8 @@ class Filesys():
         return '/'.join(self.name_user_directory)
 
     # TODO need to add support for permissions
-    def rm(self, path) -> str:
+    # TODO: need to update for new filesystme paradigm
+    def rm(self, path) -> None:
         """
         Removes a file or directory from the server filesystem.
 
@@ -318,7 +346,7 @@ class Filesys():
 
         self.fileSystemLock.release()
 
-    def update_path_metadata(self):
+    def update_path_metadata(self) -> None:
         """
         Opens a file and outputs the private loaded directory to the file.
 
@@ -334,7 +362,7 @@ class Filesys():
         Returns:
             None
         """
-        file = open(self.folder_path(self.name_user_directory[-1]), 'w')
+        file = open(self.folder_path(self.number_directory_stack[-1]), 'w')
 
         for entry in self.private_loaded_directory:
             print(self.file_content_delimiter.join(entry), file=file)
@@ -355,6 +383,7 @@ class Filesys():
     # TODO: Permissions, look into how to implement permissions, look into version control, using locks
     
     # TODO: Need to return appropriate message if createPath worked or not 
+    # TODO: Need to change th functionality depending on file or directory
     # Return values 
     def createFile(self, name, DorF="D", node_registry='0', permissions="0") -> None:
         """
@@ -377,21 +406,22 @@ class Filesys():
         self.fileSystemUpdate.acquire()
 
         # Here chekc if there were any updates to the filesystem before creating the path
+        file_number = str(self.nextFileNumber)
+        self.nextFileNumber += 1
 
-        self.private_loaded_directory.append([name, DorF, node_registry, permissions])
-        self.private_loaded_directory.sort(key=lambda x: x[0])
-
-        # Need to acquire lock
-        # Need to notify other threads and nodes that directory has been updated
+        self.private_loaded_directory.append([str(file_number), name, DorF, node_registry, permissions])
+        self.user_loaded_directory.append(name)
 
         # Updating the metadata file by writing private_loaded_directory to the file
         self.update_path_metadata()
         
-        file = open(self.absolute_path+self.name_user_directory+self.file_name_delimiter+name, 'w')
-        file.close()
+        if DorF == "D":
+            open(self.folder_path(file_number), 'w').close()
+        else:
+            os.makedirs(self.local_folder_path(self.pwd()))
+            open(self.file_path(name), 'w').close()
 
-        self.load_directory(self.absolute_path+self.name_user_directory)
 
         self.fileSystemUpdate.release()
 
-
+        return
