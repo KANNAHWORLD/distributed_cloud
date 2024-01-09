@@ -198,7 +198,7 @@ class Filesys():
         """
         return self.absolute_path + path[2:]
 
-    def helper_cd(self, path: str) -> None:
+    def helper_cd(self, path: str) -> bool:
         """
         Change the current directory to the specified path.
 
@@ -206,7 +206,7 @@ class Filesys():
             path (str): The path of the directory to change into.
 
         Returns:
-            str: The updated current directory path.
+            bool: True if the directory was changed, False otherwise.
 
         Raises:
             None
@@ -227,7 +227,7 @@ class Filesys():
             # Check if the user is in the root directory
             if self.number_directory_stack[-1] == '1':
                 # User is in the root directory
-                return
+                return False
             else:
                 # User is not in the root directory
                 # Remove the last directory from the user directory
@@ -245,15 +245,15 @@ class Filesys():
                 self.number_directory_stack.append(self.file_number(self.private_loaded_directory[index]))
             else:
                 # In case you are trying to change into a file, just do nothing
-                return 
+                return False
         else:
             # User is trying to change into a directory that does not exist
-            return
+            return False
 
         # Loading in the new directory if the directory needs to be changed
         # TODO: Make sure you are calling this correctlys
         self.load_directory(self.number_directory_stack[-1])
-        return
+        return True
 
     def ls(self) -> str:
         # TODO need to add support for permissions
@@ -287,8 +287,10 @@ class Filesys():
         """
         return '/'.join(self.name_user_directory)
 
-    # TODO need to add support for permissions
+    # TODO: need to add support for permissions
     # TODO: need to update for new filesystme paradigm
+    # TODO: add support for local files
+    # TODO: Handle case that the file exists locally
     def rm(self, path) -> None:
         """
         Removes a file or directory from the server filesystem.
@@ -317,20 +319,19 @@ class Filesys():
 
         # Recursively removes all files in subdirectories
         # TODO need to add support for permissions
-        def helper_recursive_remove(path):        
+        def helper_recursive_remove():
             
-
-
             for subDir in self.private_loaded_directory:
-                if subDir[1] == "D":
-                    self.helper_cd(subDir[0])
-                    helper_recursive_remove(self.name_user_directory)
+                if self.is_directory(subDir):
+                    self.helper_cd(self.file_name(subDir))
+                    helper_recursive_remove()
                     self.helper_cd('..')
-
                     # Removing the metadata file
-                    os.remove(self.absolute_path+self.name_user_directory+self.file_name_delimiter+subDir[0])
+                    os.remove(self.folder_path(self.file_number(subDir)))
+
                 else:
-                    abs_file = self.absolute_path + self.pwd()+'/'+subDir[0]
+                    # File path on the local system
+                    abs_file = self.local_folder_path(self.pwd()) + '/' + self.file_name(subDir)
                     
                     # If the file is found on this system, then you want to remove it
                     if os.path.exists(abs_file):
@@ -338,11 +339,31 @@ class Filesys():
 
         
         self.fileSystemLock.acquire()
+
+        # TODO: Verify that the file/directory exists before deleting it
+
+        if self.is_directory(path):
+            # Recursively remove files from subdirectories
+            helper_recursive_remove()
+            # come back to root directory
+            self.helper_cd('..')
+            ind = self.user_loaded_directory.index(path)
+            self.private_loaded_directory.pop(ind)
+            self.user_loaded_directory.pop(ind)
+            self.update_path_metadata()
         
-        self.helper_cd(path)
-        helper_recursive_remove(self.name_user_directory)
-        self.private_loaded_directory.remove(path)
-        self.updatePathMetadata()
+        else:
+            # Absolute file path
+            # TODO: check that the file exists on the local machine
+            # This functionaltiy needs to be added to the metadata
+            abs_file = self.local_folder_path(self.pwd()) + '/' + path
+            if os.path.exists(abs_file):
+                os.remove(abs_file)
+
+        
+        # Need to check if this directory existed in local space. If the directory or file existed
+            # locally, then it needs to be deleted from the local filesystem
+        
 
         self.fileSystemLock.release()
 
@@ -388,7 +409,8 @@ class Filesys():
             name (str): The name of the file or directory.
             DorF (str): Indicates whether the path represents a file or directory.
             TODO: Check for zero
-            node_registry (str): The node registry information. A value of '0' indicates that the folder/file will be created locally on the central server.
+            node_registry (str): The node registry information. A value of '0' indicates 
+                    that the folder/file will be created locally on the central server.
             permissions (str): The permissions for the path.
 
         Returns:
